@@ -1,0 +1,39 @@
+version: "2"
+
+services:
+    interlock:
+        image: ehazlett/interlock:master
+        command: run -c /etc/interlock/config.toml
+        ports:
+            - 8080
+        volumes:
+            - ./config.toml:/etc/interlock/config.toml
+            - ./nginx.conf.template:/etc/interlock/nginx.conf.template
+            - /var/run/docker.sock:/var/run/docker.sock
+    nginx:
+        image: nginx:latest
+        entrypoint: nginx
+        command: -g "daemon off;" -c /etc/nginx/nginx.conf
+        ports:
+            - 80:80
+        labels:
+            - "interlock.ext.name=nginx"
+        links:
+            - interlock:interlock
+        depends_on:
+            - interlock
+    redis:
+        image: redis:latest
+        container_name: redis
+        ports:
+            - "6379:6379"
+    node:
+        image: nvbeta/node
+        ports:
+            - 8888
+        labels:
+            - "interlock.hostname=test"
+            - "interlock.domain=local"
+        depends_on:
+            - nginx
+            - redis
